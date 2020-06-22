@@ -66,12 +66,12 @@ int main(int argc, const char* argv[])
     if (server_mode)
     {
         std::cout << "running as server at " << host << ":" << port << std::endl;
-        udp_connection.Accept(host.c_str(), port);
+        udp_connection.Accept(host.c_str(), port, 0x112233);
     }
     else if (client_mode)
     {
         std::cout << "running as client, remote " << host << ":" << port << std::endl;
-        udp_connection.Connect(host.c_str(), port);
+        udp_connection.Connect(host.c_str(), port, 0x112233);
 
         if (ping_pong)
         {

@@ -9,8 +9,8 @@ public:
     UdpConnection();
     int Init();
     int DeInit();
-    int Connect(const char* host, int port);
-    int Accept(const char* host, int port);
+    int Connect(const char* host, int port, uint32_t kcp_conv);
+    int Accept(const char* host, int port, uint32_t kcp_conv);
     size_t Send(std::string& data);
     size_t Send(const char* buf, size_t len);
     ssize_t Recv(std::string& data);
@@ -26,7 +26,7 @@ public:
     bool set_socket_blocking(int fd, bool blocking);
 
 protected:
-    void CreateKcp();
+    void CreateKcp(uint32_t kcp_conv);
     static int Output(const char* buf, int len, ikcpcb* kcp, void* user);
     static void WriteLog(const char* log, struct IKCPCB* kcp, void* user);
     void Log(const char* prefix, const char* buf, size_t len);

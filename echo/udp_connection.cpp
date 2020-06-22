@@ -40,7 +40,7 @@ int UdpConnection::DeInit()
 #endif
 }
 
-int UdpConnection::Connect(const char* host, int port)
+int UdpConnection::Connect(const char* host, int port, uint32_t kcp_conv)
 {
     sockfd_ = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     set_socket_blocking(sockfd_, false);
@@ -49,11 +49,11 @@ int UdpConnection::Connect(const char* host, int port)
     remote_addr_.sin_addr.s_addr = inet_addr(host);
     remote_addr_.sin_port = htons(port);
 
-    CreateKcp();
+    CreateKcp(kcp_conv);
     return Send(heartbeat_str);
 }
 
-int UdpConnection::Accept(const char* host, int port)
+int UdpConnection::Accept(const char* host, int port, uint32_t kcp_conv)
 {
     std::memset(&remote_addr_, 0, sizeof(remote_addr_));
 
@@ -65,13 +65,13 @@ int UdpConnection::Accept(const char* host, int port)
     addr_info.sin_port = htons(port);
     ::bind(sockfd_, (const sockaddr*)&addr_info, sizeof(addr_info));
 
-    CreateKcp();
+    CreateKcp(kcp_conv);
     return 0;
 }
 
-void UdpConnection::CreateKcp()
+void UdpConnection::CreateKcp(uint32_t kcp_conv)
 {
-    kcp_ = ikcp_create(0xCBCBCBCB, this);
+    kcp_ = ikcp_create(kcp_conv, this);
     kcp_->output = UdpConnection::Output;
     if (enable_log_)
     {
