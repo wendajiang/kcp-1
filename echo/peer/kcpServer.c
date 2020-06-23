@@ -178,7 +178,7 @@ int udpOutPut(const char *buf, int len, ikcpcb *kcp, void *user){
     if (n >= 0)       
    	{       
 		//会重复发送，因此牺牲带宽
-		printf("udpOutPut-send: size =%d bytes   buff=[%s]\n", n ,buf+24);//24字节的KCP头部
+		printf("udpOutPut-send: size =%d bytes   buff=[%s]\n", n ,buf + 24);//24字节的KCP头部
         return n;
     } 
 	else 
@@ -232,42 +232,40 @@ void loop(kcpObj *send)
 	unsigned int len = sizeof(struct sockaddr_in);
 	int n,ret;	
 	//接收到第一个包就开始循环处理
-	
+	char buf[1024]={0};
 	while(1)
-	{
-		isleep(1);		
-		ikcp_update(send->pkcp,iclock());
+	{	
+		ikcp_update(send->pkcp, iclock());
 		
-		char buf[1024]={0};
 	
 		//处理收消息
-    	n = recvfrom(send->sockfd, buf, sizeof(buf), 0,(struct sockaddr *)&send->CientAddr,&len);			
+    	n = recvfrom(send->sockfd, buf, sizeof(buf), 0,(struct sockaddr *)&send->CientAddr,&len);		
+
+		// sendto(send->sockfd, buf, sizeof(buf), 0,(struct sockaddr *)&send->CientAddr,sizeof(send->CientAddr));
 		
 		if(n < 0)//检测是否有UDP数据包: kcp头部+data
 			continue;
-		
-		printf("UDP recv pkg: %s,  size= %d   \n", buf, n);
-	
-		//预接收数据:调用ikcp_input将裸数据交给KCP，这些数据有可能是KCP控制报文，并不是我们要的数据。 
-		//kcp接收到下层协议UDP传进来的数据底层数据buffer转换成kcp的数据包格式
-		ret = ikcp_input(send->pkcp, buf, n);
-		
-		while(true)	{
-			//kcp将接收到的kcp数据包还原成之前kcp发送的buffer数据		
-			ret = ikcp_recv(send->pkcp, buf, n);//从 buf中 提取真正数据，返回提取到的数据大小
-			if(ret < 0) 
-				break;
+		else {
+			//预接收数据:调用ikcp_input将裸数据交给KCP，这些数据有可能是KCP控制报文，并不是我们要的数据。 
+			//kcp接收到下层协议UDP传进来的数据底层数据buffer转换成kcp的数据包格式
+			ret = ikcp_input(send->pkcp, buf, n);
+
+			// while(true)	{
+				//kcp将接收到的kcp数据包还原成之前kcp发送的buffer数据		
+				ret = ikcp_recv(send->pkcp, buf, n);//从 buf中 提取真正数据，返回提取到的数据大小
+				// if(ret < 0) 
+				// 	break;
+			// }
+
+			//kcp提取到真正的数据	
+			printf("Data from Client: %s size = %d\n", buf, ret);
+			//kcp收到交互包，则回复			
+			ret = ikcp_send(send->pkcp, buf, ret);
+			if (ret > 0) {
+				ikcp_flush(send->pkcp);
+			}
 		}
-				
-		//kcp提取到真正的数据	
-		printf("Data from Client: %s\n", buf);
-		//kcp收到交互包，则回复			
-		ikcp_send(send->pkcp, send->buff, ret);				
-		number++;		
-		printf("the times [%d] send\n",number);
 		
-
-
 	}	
 }
 

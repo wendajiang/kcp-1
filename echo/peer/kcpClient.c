@@ -210,25 +210,32 @@ int main(int argc,char *argv[])
 	// printf("ikcp_send send connect req： [%s] len=%d ret = %d\n",temp,(int)sizeof(temp),ret);//发送成功的
 
 	while(true) {
+		ikcp_update(send.pkcp, iclock());
 		printf("please input some msg:\n");
-		char input[512] = { 0 };
-		scanf("%s\n", input);
-		int ret = ikcp_send(send.pkcp, input, (int)strlen(input));
+		char input[512];
+		scanf("%s", input);
+	
 
-		//ikcp_update包含ikcp_flush，ikcp_flush将发送队列中的数据通过下层协议UDP进行发送
-		ikcp_update(send.pkcp, iclock());//不是调用一次两次就起作用，要loop调用
+		// int ret = sendto(send.sockfd, input, (int)strlen(input), 0, (struct sockaddr *) &send.addr, sizeof(send.addr));
+		int ret = ikcp_send(send.pkcp, input, (int)strlen(input));
+		if (ret < 0) {
+			printf("error while ikcp_send , ret = %d\n", ret);
+		}
+		else {
+			ikcp_flush(send.pkcp);
+		}
+
+		// //ikcp_update包含ikcp_flush，ikcp_flush将发送队列中的数据通过下层协议UDP进行发送
+		// ikcp_update(send.pkcp, iclock());//不是调用一次两次就起作用，要loop调用
 
 		char buf[512]={0};
 		socklen_t len = sizeof(send.addr);
 
 		//处理收消息
-		int n = recvfrom(send.sockfd, buf, sizeof(buf), MSG_DONTWAIT,(struct sockaddr *) &send.addr,&len);
-	
+		int n = recvfrom(send.sockfd, buf, sizeof(buf), 0,(struct sockaddr *) &send.addr,&len);
 		if(n < 0)//检测是否有UDP数据包
 			continue;
-			
-		printf("udp recv pkg  size= %d   buf =%s\n",n,buf+24);		
-		
+
 		//预接收数据:调用ikcp_input将裸数据交给KCP，这些数据有可能是KCP控制报文，并不是我们要的数据。 
 		//kcp接收到下层协议UDP传进来的数据底层数据buffer转换成kcp的数据包格式
 		ret = ikcp_input(send.pkcp, buf, n);	
@@ -237,7 +244,10 @@ int main(int argc,char *argv[])
 			//printf("ikcp_input ret = %d\n",ret);
 			continue;			
 		}
-		printf("udp recv pkg %s\n", buf);
+		char recv_buf[512] = { 0 };
+		int recv_len = sizeof(recv_buf);
+		ikcp_recv(send.pkcp, recv_buf, recv_len);
+		printf("recv pkg is %s\n", recv_buf);
 	}
 
 	// loop(&send);//循环处理
